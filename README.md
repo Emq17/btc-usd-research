@@ -1,4 +1,4 @@
-# Bitcoin / U.S. Dollar - System Research
+# BTC/USD - System Research
 
 Research framework for short-horizon BTC/USD signal evaluation, data quality checks, and performance analytics.
 
