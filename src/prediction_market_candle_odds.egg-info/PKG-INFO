@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: prediction-market-candle-odds
+Version: 0.1.0
+Summary: Multi-timeframe candle odds research for prediction market hypotheses
+Requires-Python: >=3.9
+Requires-Dist: ccxt>=4.3.0
+Requires-Dist: numpy>=1.24
+Requires-Dist: pandas>=2.0
+Requires-Dist: matplotlib>=3.7
