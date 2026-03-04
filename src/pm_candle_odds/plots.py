@@ -17,17 +17,17 @@ def save_strategy_charts(events_df: pd.DataFrame, outdir: Path) -> List[Path]:
 
     data = events_df.sort_values("period_end").copy()
     if "point" not in data.columns:
-        data["point"] = np.where(data["win"].astype(int) == 1, 1, -1)
+        data["point"] = np.where(data["win"].astype(int) == 1, 1.0, -1.0)
     if "signal_index" not in data.columns:
         data["signal_index"] = np.arange(1, len(data) + 1)
     if "cumulative_points" not in data.columns:
         data["cumulative_points"] = data["point"].cumsum()
     if "cumulative_win_rate" not in data.columns:
-        data["cumulative_win_rate"] = data["point"].cumsum() / data["signal_index"]
+        data["cumulative_win_rate"] = data["win"].cumsum() / data["signal_index"]
 
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.plot(data["period_end"], data["cumulative_points"], color="#1f77b4", linewidth=2)
-    ax.set_title("Cumulative Points Over Time (Win=+1, Loss=-1)")
+    ax.set_title("Cumulative Net Points Over Time (After Commission)")
     ax.set_ylabel("Cumulative Points")
     ax.set_xlabel("Date")
     ax.grid(alpha=0.25)

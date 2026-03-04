@@ -9,8 +9,9 @@ import pandas as pd
 
 @dataclass
 class StrategyRules:
-    trend_5m_min_run: int = 2
-    one_min_required_in_first_four: int = 3
+    min_5m_trend_candles: int = 2
+    min_aligned_1m_in_first4: int = 3
+    commission_rate: float = 0.01
     invalidate_on_counter_breakout: bool = True
     skip_chop: bool = True
 
@@ -37,7 +38,7 @@ def evaluate_strategy(
         target = five.iloc[i]
         prev = five.iloc[:i]
         trend, run_len = _detect_trend(prev["direction"].tolist())
-        if trend == 0 or run_len < rules.trend_5m_min_run:
+        if trend == 0 or run_len < rules.min_5m_trend_candles:
             continue
 
         recent4 = prev.tail(4)["direction"].tolist()
@@ -52,8 +53,8 @@ def evaluate_strategy(
             continue
 
         first4 = chunk.head(4).copy()
-        favor_count = int((first4["direction"] == trend).sum())
-        passed_count_rule = favor_count >= rules.one_min_required_in_first_four
+        aligned_1m_count = int((first4["direction"] == trend).sum())
+        passed_count_rule = aligned_1m_count >= rules.min_aligned_1m_in_first4
 
         invalidated_breakout = False
         invalid_reason = ""
@@ -68,11 +69,11 @@ def evaluate_strategy(
                 "period_start": start,
                 "period_end": end,
                 "trend_direction": _dir_label(trend),
-                "trend_run_len": int(run_len),
+                "current_5m_trend_length": int(run_len),
                 "recent4_5m_pattern": _pattern_label(recent4),
                 "is_chop": bool(is_chop),
-                "first4_favor_count": favor_count,
-                "required_favor_count": rules.one_min_required_in_first_four,
+                "aligned_1m_in_first4": aligned_1m_count,
+                "required_aligned_1m_in_first4": rules.min_aligned_1m_in_first4,
                 "passed_count_rule": bool(passed_count_rule),
                 "invalidated_counter_breakout": bool(invalidated_breakout),
                 "invalid_reason": invalid_reason,
@@ -91,21 +92,31 @@ def evaluate_strategy(
                     "wins": 0,
                     "losses": 0,
                     "win_rate": 0.0,
+                    "commission_rate": float(rules.commission_rate),
+                    "gross_points": 0.0,
+                    "net_points_after_commission": 0.0,
+                    "avg_net_point": 0.0,
                 }
             ]
         )
         return summary, events
 
     signals = events[events["signal_active"]].copy()
-    signals["point"] = np.where(signals["win"].astype(int) == 1, 1, -1)
+    signals["gross_point"] = np.where(signals["win"].astype(int) == 1, 1.0, -1.0)
+    signals["commission_rate"] = float(rules.commission_rate)
+    signals["point"] = signals["gross_point"] - signals["commission_rate"]
     signals["cumulative_points"] = signals["point"].cumsum()
+    signals["cumulative_gross_points"] = signals["gross_point"].cumsum()
     signals["signal_index"] = np.arange(1, len(signals) + 1)
-    signals["cumulative_win_rate"] = signals["point"].cumsum() / signals["signal_index"]
+    signals["cumulative_win_rate"] = signals["win"].cumsum() / signals["signal_index"]
 
     total = int(len(signals))
     wins = int(signals["win"].sum())
     losses = total - wins
     win_rate = float(wins / total) if total else 0.0
+    gross_points = float(signals["gross_point"].sum()) if total else 0.0
+    net_points_after_commission = float(signals["point"].sum()) if total else 0.0
+    avg_net_point = float(net_points_after_commission / total) if total else 0.0
 
     summary = pd.DataFrame(
         [
@@ -114,6 +125,10 @@ def evaluate_strategy(
                 "wins": wins,
                 "losses": losses,
                 "win_rate": win_rate,
+                "commission_rate": float(rules.commission_rate),
+                "gross_points": gross_points,
+                "net_points_after_commission": net_points_after_commission,
+                "avg_net_point": avg_net_point,
             }
         ]
     )

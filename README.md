@@ -23,7 +23,7 @@ This highlights practical skills relevant to research, trading-tech, and data ro
 - API data ingestion and normalization
 - Time-series transformation and validation
 - Signal-event labeling and outcome scoring
-- Batch backtesting and parameter sweeps
+- Batch backtesting and rule variation tests
 - Visualization and performance diagnostics
 - Clean CLI/terminal UX for repeatable workflows
 
@@ -69,8 +69,24 @@ python3 scripts/run_study.py \
   --exchange coinbase \
   --symbol BTC/USD \
   --start 2025-01-01T00:00:00Z \
-  --end 2025-02-01T00:00:00Z
+  --end 2025-02-01T00:00:00Z \
+  --min-5m-trend-candles 2 \
+  --min-aligned-1m-in-first4 3 \
+  --commission-rate 0.01
 ```
+
+## Commission Model
+- Tests include a commission cost per signal, default `0.01` (1%).
+- Net point scoring is computed as `gross_point - commission_rate`.
+- With 1% commission: wins are `+0.99`, losses are `-1.01`.
+- This affects `point`, `cumulative_points`, `net_points_after_commission`, and `avg_net_point`.
+- Adjust via CLI: `--commission-rate 0.01`
+
+## Naming Map
+- `min_5m_trend_candles`: minimum same-direction 5m candles required to define trend
+- `min_aligned_1m_in_first4`: minimum 1m candles aligned with trend in the first 4 minutes
+- `rule_variation_test`: running multiple parameter combinations for comparison
+- `variation_summary`: aggregated comparison table across those combinations
 
 ## Analytics Workflow
 1. Run one or more backtests over defined windows.
@@ -79,10 +95,27 @@ python3 scripts/run_study.py \
 4. Use cumulative charts to evaluate consistency over time.
 5. Promote robust settings into longer walk-forward testing.
 
+
+## Loss Clustering Outputs
+Each run now writes grouped loss diagnostics to `results/<outdir>/loss_analysis/`:
+- `losses_by_hour_utc.csv`
+- `losses_by_weekday_utc.csv`
+- `losses_by_month_utc.csv`
+- `losses_by_hour_est.csv`
+- `losses_by_weekday_est.csv`
+- `losses_by_month_est.csv`
+- `losses_by_weekday_hour_utc.csv`
+- `losses_by_weekday_hour_est.csv`
+- `losses_by_session_utc.csv` (`Asia`, `London`, `New_York`, `Off_Hours`)
+- `avoid_windows_report_utc.csv`
+- `avoid_windows_report_est.csv`
+
+`avoid_windows_report_*` applies a minimum sample filter (default 20 signals per bucket). If your run is short, those files may be header-only until more data is collected.
+
 ## Tableau Integration
 Recommended fields for dashboards:
 - Time axis: `period_end`
-- Outcome metrics: `win`, `point`, `cumulative_points`, `cumulative_win_rate`
+- Outcome metrics: `win`, `gross_point`, `point`, `cumulative_points`, `cumulative_win_rate`
 - Filters: run window, exchange, symbol, configuration
 
 Suggested visuals:

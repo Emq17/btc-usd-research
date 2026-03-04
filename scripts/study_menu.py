@@ -32,8 +32,9 @@ def build_command() -> list:
     end = ask("End UTC", end_default)
     outdir = ask("Output directory", "results/generated")
 
-    trend_run = ask("5m trend run minimum", "2")
-    first4_min = ask("1m candles needed in trend direction (first 4)", "3")
+    min_5m_trend_candles = ask("Minimum 5m trend candles", "2")
+    min_aligned_1m_in_first4 = ask("Minimum aligned 1m candles in first 4", "3")
+    commission_rate = ask("Commission rate per signal (decimal)", "0.01")
 
     disable_breakout = ask_bool("Disable counter-breakout invalidation", default=False)
     allow_chop = ask_bool("Allow chop (alternating 5m candles)", default=False)
@@ -52,10 +53,12 @@ def build_command() -> list:
         end,
         "--outdir",
         outdir,
-        "--trend-run",
-        trend_run,
-        "--first4-min",
-        first4_min,
+        "--min-5m-trend-candles",
+        min_5m_trend_candles,
+        "--min-aligned-1m-in-first4",
+        min_aligned_1m_in_first4,
+        "--commission-rate",
+        commission_rate,
     ]
 
     if disable_breakout:
@@ -69,8 +72,8 @@ def build_command() -> list:
 
 
 def main() -> None:
-    print("\nBTC/USD 1m->5m Strategy Menu\n")
-    print("Rules: trend on 5m, 3 of first 4 one-minute candles aligned, optional breakout invalidation.\n")
+    print("\nBTC/USD Strategy Research Menu\n")
+    print("Rule settings are named for readability in output tables and file exports.\n")
 
     while True:
         cmd = build_command()

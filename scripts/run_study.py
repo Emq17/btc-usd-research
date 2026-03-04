@@ -13,15 +13,38 @@ from pm_candle_odds.pipeline import StudyConfig, default_start_end, run_study
 def parse_args() -> argparse.Namespace:
     default_start, default_end = default_start_end(days=30)
 
-    p = argparse.ArgumentParser(description="BTC/USD 1m->5m strategy study")
+    p = argparse.ArgumentParser(description="BTC/USD strategy research run")
     p.add_argument("--exchange", default="coinbase", help="ccxt exchange id")
     p.add_argument("--symbol", default="BTC/USD", help="market symbol")
     p.add_argument("--start", default=default_start, help="UTC start, e.g. 2025-01-01T00:00:00Z")
     p.add_argument("--end", default=default_end, help="UTC end, e.g. 2025-02-01T00:00:00Z")
     p.add_argument("--outdir", default="results/generated")
 
-    p.add_argument("--trend-run", type=int, default=2, help="minimum same-color 5m candles for trend")
-    p.add_argument("--first4-min", type=int, default=3, help="minimum 1m candles in first four aligned with trend")
+    p.add_argument(
+        "--min-5m-trend-candles",
+        dest="min_5m_trend_candles",
+        type=int,
+        default=2,
+        help="minimum same-direction 5m candles required to define trend",
+    )
+    p.add_argument(
+        "--min-aligned-1m-in-first4",
+        dest="min_aligned_1m_in_first4",
+        type=int,
+        default=3,
+        help="minimum 1m candles aligned with trend within first 4 minutes",
+    )
+    p.add_argument(
+        "--commission-rate",
+        type=float,
+        default=0.01,
+        help="commission applied per signal as decimal (default 0.01 = 1%)",
+    )
+
+    # Backward-compatible aliases for older command history.
+    p.add_argument("--trend-run", dest="min_5m_trend_candles", type=int, help=argparse.SUPPRESS)
+    p.add_argument("--first4-min", dest="min_aligned_1m_in_first4", type=int, help=argparse.SUPPRESS)
+
     p.add_argument("--no-breakout-invalidation", action="store_true", help="disable counter-breakout invalidation")
     p.add_argument("--allow-chop", action="store_true", help="allow alternating 5m chop periods")
     p.add_argument("--no-api-keys", action="store_true", help="ignore PM_EXCHANGE_API_* env vars")
@@ -36,8 +59,9 @@ def main() -> None:
         start_utc=args.start,
         end_utc=args.end,
         outdir=args.outdir,
-        trend_5m_min_run=args.trend_run,
-        one_min_required_in_first_four=args.first4_min,
+        min_5m_trend_candles=args.min_5m_trend_candles,
+        min_aligned_1m_in_first4=args.min_aligned_1m_in_first4,
+        commission_rate=args.commission_rate,
         invalidate_on_counter_breakout=not args.no_breakout_invalidation,
         skip_chop=not args.allow_chop,
         use_env_api_keys=not args.no_api_keys,
